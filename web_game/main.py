@@ -8,7 +8,7 @@ pygame.init()
 
 # Set up the display
 width, height = 800, 600
-screen = pygame.display.set_mode((width, height))
+screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 pygame.display.set_caption("Tetris Game")
 
 # Colors
@@ -167,6 +167,32 @@ paused = False
 font = pygame.font.SysFont('Arial', 24)
 big_font = pygame.font.SysFont('Arial', 48)
 
+# On-screen controls for mobile
+button_size = 60
+button_margin = 10
+button_color = (100, 100, 100)
+button_hover_color = (150, 150, 150)
+button_press_color = (200, 200, 200)
+
+# Define button positions and properties
+buttons = {
+    'left': {'rect': pygame.Rect(button_margin, height - 2*button_size - button_margin, button_size, button_size),
+             'text': '←', 'action': 'LEFT'},
+    'right': {'rect': pygame.Rect(2*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size),
+              'text': '→', 'action': 'RIGHT'},
+    'down': {'rect': pygame.Rect(button_size + button_margin, height - button_size - button_margin, button_size, button_size),
+             'text': '↓', 'action': 'DOWN'},
+    'up': {'rect': pygame.Rect(button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size),
+           'text': '↑', 'action': 'UP'},
+    'drop': {'rect': pygame.Rect(width - button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size),
+             'text': '▼', 'action': 'SPACE'},
+    'pause': {'rect': pygame.Rect(width - button_size - button_margin, button_margin, button_size, button_size),
+              'text': '⏸', 'action': 'P'}
+}
+
+# Track which buttons are being pressed
+button_states = {key: False for key in buttons}
+
 # Create the game grid (0 means empty)
 grid = [[0 for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
@@ -236,6 +262,22 @@ def draw_grid():
                 pygame.draw.rect(screen, BLACK, (draw_x, draw_y, GRID_SIZE, GRID_SIZE))
             else:
                 pygame.draw.rect(screen, SHAPE_COLORS[grid[y][x] - 1], (draw_x, draw_y, GRID_SIZE, GRID_SIZE))
+
+def draw_controls():
+    button_font = pygame.font.SysFont('Arial', 30)
+    
+    for button_name, button_data in buttons.items():
+        # Determine button color based on state
+        color = button_press_color if button_states[button_name] else button_color
+        
+        # Draw button
+        pygame.draw.rect(screen, color, button_data['rect'], 0, 10)
+        pygame.draw.rect(screen, WHITE, button_data['rect'], 2, 10)
+        
+        # Draw button text
+        text = button_font.render(button_data['text'], True, WHITE)
+        text_rect = text.get_rect(center=button_data['rect'].center)
+        screen.blit(text, text_rect)
 
 def draw_score():
     score_text = font.render(f"Score: {score}", True, WHITE)
@@ -309,6 +351,17 @@ def reset_game():
     current_tetromino = create_new_tetromino()
     next_tetromino = create_new_tetromino()
 
+def update_button_positions():
+    global buttons
+    
+    # Update button positions based on current screen size
+    buttons['left']['rect'] = pygame.Rect(button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['right']['rect'] = pygame.Rect(2*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['down']['rect'] = pygame.Rect(button_size + button_margin, height - button_size - button_margin, button_size, button_size)
+    buttons['up']['rect'] = pygame.Rect(button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size)
+    buttons['drop']['rect'] = pygame.Rect(width - button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['pause']['rect'] = pygame.Rect(width - button_size - button_margin, button_margin, button_size, button_size)
+
 # Initialize game
 current_tetromino = create_new_tetromino()
 next_tetromino = create_new_tetromino()
@@ -321,6 +374,7 @@ pygame.key.set_repeat(200, 100)  # Delay, interval in milliseconds
 
 async def main():
     global current_tetromino, next_tetromino, fall_time, game_over, paused, score, level, lines_cleared
+    global width, height, BOARD_X, BOARD_Y, button_states
     
     running = True
     while running:
@@ -334,6 +388,35 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            
+            # Handle window resize
+            elif event.type == pygame.VIDEORESIZE:
+                width, height = event.size
+                screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+                
+                # Recalculate board position to center it
+                BOARD_X = (width - BOARD_WIDTH) // 2
+                BOARD_Y = (height - BOARD_HEIGHT) // 2
+                
+                # Update button positions
+                update_button_positions()
+            
+            # Handle mouse/touch events for buttons
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                for button_name, button_data in buttons.items():
+                    if button_data['rect'].collidepoint(pos):
+                        button_states[button_name] = True
+                        
+                        # Handle button actions
+                        if button_data['action'] == 'P':
+                            paused = not paused
+                        elif button_data['action'] == 'R' and game_over:
+                            reset_game()
+            
+            elif event.type == pygame.MOUSEBUTTONUP:
+                for button_name in button_states:
+                    button_states[button_name] = False
             
             if not game_over and not paused:
                 if event.type == pygame.KEYDOWN:
@@ -366,6 +449,36 @@ async def main():
                 elif event.key == pygame.K_r and game_over:
                     reset_game()
         
+        # Handle button presses for continuous movement
+        if not game_over and not paused:
+            if button_states['left']:
+                current_tetromino.move(-1, 0)
+            if button_states['right']:
+                current_tetromino.move(1, 0)
+            if button_states['down']:
+                current_tetromino.move(0, 1)
+                fall_time = 0
+            if button_states['up']:
+                current_tetromino.rotate()
+                # Reset button state to prevent continuous rotation
+                button_states['up'] = False
+            if button_states['drop']:
+                # Hard drop
+                while current_tetromino.move(0, 1):
+                    pass
+                
+                lock_tetromino(current_tetromino)
+                check_lines()
+                current_tetromino = next_tetromino
+                next_tetromino = create_new_tetromino()
+                
+                if not current_tetromino.is_valid_position():
+                    game_over = True
+                
+                fall_time = 0
+                # Reset button state to prevent continuous hard drops
+                button_states['drop'] = False
+        
         # Game logic
         if not game_over and not paused:
             if fall_time >= fall_speed:
@@ -389,6 +502,9 @@ async def main():
         if not game_over and not paused:
             current_tetromino.draw()
         draw_score()
+        
+        # Draw on-screen controls
+        draw_controls()
         
         # Draw game over or pause screen
         if game_over:
