@@ -168,26 +168,30 @@ font = pygame.font.SysFont('Arial', 24)
 big_font = pygame.font.SysFont('Arial', 48)
 
 # On-screen controls for mobile
-button_size = 60
-button_margin = 10
-button_color = (100, 100, 100)
-button_hover_color = (150, 150, 150)
-button_press_color = (200, 200, 200)
+button_size = 70
+button_margin = 15
+button_color = (80, 80, 80, 180)
+button_hover_color = (120, 120, 120, 200)
+button_press_color = (160, 160, 160, 220)
 
 # Define button positions and properties
 buttons = {
     'left': {'rect': pygame.Rect(button_margin, height - 2*button_size - button_margin, button_size, button_size),
-             'text': '←', 'action': 'LEFT'},
-    'right': {'rect': pygame.Rect(2*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size),
-              'text': '→', 'action': 'RIGHT'},
-    'down': {'rect': pygame.Rect(button_size + button_margin, height - button_size - button_margin, button_size, button_size),
-             'text': '↓', 'action': 'DOWN'},
-    'up': {'rect': pygame.Rect(button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size),
-           'text': '↑', 'action': 'UP'},
-    'drop': {'rect': pygame.Rect(width - button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size),
-             'text': '▼', 'action': 'SPACE'},
+             'text': '←', 'action': 'LEFT', 'color': (50, 100, 200)},
+    'right': {'rect': pygame.Rect(3*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size),
+              'text': '→', 'action': 'RIGHT', 'color': (50, 100, 200)},
+    'down': {'rect': pygame.Rect(2*button_size + button_margin, height - button_size - button_margin, button_size, button_size),
+             'text': '↓', 'action': 'DOWN', 'color': (50, 100, 200)},
+    'up': {'rect': pygame.Rect(2*button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size),
+           'text': '↑', 'action': 'UP', 'color': (50, 100, 200)},
+    'rotate': {'rect': pygame.Rect(width - 2*button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size),
+             'text': '↻', 'action': 'ROTATE', 'color': (200, 100, 50)},
+    'drop': {'rect': pygame.Rect(width - button_size - button_margin, height - button_size - button_margin, button_size, button_size),
+             'text': '▼', 'action': 'SPACE', 'color': (200, 50, 50)},
     'pause': {'rect': pygame.Rect(width - button_size - button_margin, button_margin, button_size, button_size),
-              'text': '⏸', 'action': 'P'}
+              'text': '⏸', 'action': 'P', 'color': (50, 200, 50)},
+    'restart': {'rect': pygame.Rect(width - 2*button_size - 2*button_margin, button_margin, button_size, button_size),
+               'text': '↺', 'action': 'R', 'color': (200, 200, 50)}
 }
 
 # Track which buttons are being pressed
@@ -264,20 +268,31 @@ def draw_grid():
                 pygame.draw.rect(screen, SHAPE_COLORS[grid[y][x] - 1], (draw_x, draw_y, GRID_SIZE, GRID_SIZE))
 
 def draw_controls():
-    button_font = pygame.font.SysFont('Arial', 30)
+    button_font = pygame.font.SysFont('Arial', 36)
     
     for button_name, button_data in buttons.items():
         # Determine button color based on state
-        color = button_press_color if button_states[button_name] else button_color
-        
-        # Draw button
-        pygame.draw.rect(screen, color, button_data['rect'], 0, 10)
-        pygame.draw.rect(screen, WHITE, button_data['rect'], 2, 10)
+        if button_states[button_name]:
+            base_color = button_press_color
+        else:
+            base_color = button_color
+            
+        # Create a rounded rectangle for the button
+        pygame.draw.rect(screen, button_data['color'], button_data['rect'], 0, 15)
+        pygame.draw.rect(screen, WHITE, button_data['rect'], 3, 15)
         
         # Draw button text
         text = button_font.render(button_data['text'], True, WHITE)
         text_rect = text.get_rect(center=button_data['rect'].center)
         screen.blit(text, text_rect)
+        
+        # Add a label below certain buttons
+        if button_name in ['rotate', 'drop']:
+            label_font = pygame.font.SysFont('Arial', 16)
+            label_text = "Rotate" if button_name == 'rotate' else "Drop"
+            label = label_font.render(label_text, True, WHITE)
+            label_rect = label.get_rect(midtop=(button_data['rect'].centerx, button_data['rect'].bottom + 5))
+            screen.blit(label, label_rect)
 
 def draw_score():
     score_text = font.render(f"Score: {score}", True, WHITE)
@@ -355,12 +370,19 @@ def update_button_positions():
     global buttons
     
     # Update button positions based on current screen size
+    # D-pad layout
     buttons['left']['rect'] = pygame.Rect(button_margin, height - 2*button_size - button_margin, button_size, button_size)
-    buttons['right']['rect'] = pygame.Rect(2*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size)
-    buttons['down']['rect'] = pygame.Rect(button_size + button_margin, height - button_size - button_margin, button_size, button_size)
-    buttons['up']['rect'] = pygame.Rect(button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size)
-    buttons['drop']['rect'] = pygame.Rect(width - button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['right']['rect'] = pygame.Rect(3*button_size + button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['down']['rect'] = pygame.Rect(2*button_size + button_margin, height - button_size - button_margin, button_size, button_size)
+    buttons['up']['rect'] = pygame.Rect(2*button_size + button_margin, height - 3*button_size - button_margin, button_size, button_size)
+    
+    # Action buttons on the right side
+    buttons['rotate']['rect'] = pygame.Rect(width - 2*button_size - button_margin, height - 2*button_size - button_margin, button_size, button_size)
+    buttons['drop']['rect'] = pygame.Rect(width - button_size - button_margin, height - button_size - button_margin, button_size, button_size)
+    
+    # Menu buttons at the top
     buttons['pause']['rect'] = pygame.Rect(width - button_size - button_margin, button_margin, button_size, button_size)
+    buttons['restart']['rect'] = pygame.Rect(width - 2*button_size - 2*button_margin, button_margin, button_size, button_size)
 
 # Initialize game
 current_tetromino = create_new_tetromino()
@@ -408,13 +430,36 @@ async def main():
                     if button_data['rect'].collidepoint(pos):
                         button_states[button_name] = True
                         
-                        # Handle button actions
+                        # Handle immediate button actions
                         if button_data['action'] == 'P':
                             paused = not paused
-                        elif button_data['action'] == 'R' and game_over:
-                            reset_game()
+                        elif button_data['action'] == 'R':
+                            if game_over:
+                                reset_game()
+                        elif button_data['action'] == 'ROTATE' and not game_over and not paused:
+                            current_tetromino.rotate()
             
             elif event.type == pygame.MOUSEBUTTONUP:
+                pos = pygame.mouse.get_pos()
+                for button_name, button_data in buttons.items():
+                    if button_data['rect'].collidepoint(pos) and button_states[button_name]:
+                        # Handle button release actions for certain buttons
+                        if button_data['action'] == 'SPACE' and not game_over and not paused:
+                            # Hard drop
+                            while current_tetromino.move(0, 1):
+                                pass
+                            
+                            lock_tetromino(current_tetromino)
+                            check_lines()
+                            current_tetromino = next_tetromino
+                            next_tetromino = create_new_tetromino()
+                            
+                            if not current_tetromino.is_valid_position():
+                                game_over = True
+                            
+                            fall_time = 0
+                
+                # Reset all button states on mouse up
                 for button_name in button_states:
                     button_states[button_name] = False
             
@@ -449,7 +494,7 @@ async def main():
                 elif event.key == pygame.K_r and game_over:
                     reset_game()
         
-        # Handle button presses for continuous movement
+        # Handle continuous button presses for movement
         if not game_over and not paused:
             if button_states['left']:
                 current_tetromino.move(-1, 0)
@@ -458,26 +503,6 @@ async def main():
             if button_states['down']:
                 current_tetromino.move(0, 1)
                 fall_time = 0
-            if button_states['up']:
-                current_tetromino.rotate()
-                # Reset button state to prevent continuous rotation
-                button_states['up'] = False
-            if button_states['drop']:
-                # Hard drop
-                while current_tetromino.move(0, 1):
-                    pass
-                
-                lock_tetromino(current_tetromino)
-                check_lines()
-                current_tetromino = next_tetromino
-                next_tetromino = create_new_tetromino()
-                
-                if not current_tetromino.is_valid_position():
-                    game_over = True
-                
-                fall_time = 0
-                # Reset button state to prevent continuous hard drops
-                button_states['drop'] = False
         
         # Game logic
         if not game_over and not paused:
