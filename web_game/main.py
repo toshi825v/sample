@@ -8,7 +8,7 @@ pygame.init()
 
 # Set up the display
 width, height = 800, 600
-screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+screen = pygame.display.set_mode((width, height))  # Remove RESIZABLE flag
 pygame.display.set_caption("Tetris Game")
 
 # Colors
@@ -170,9 +170,9 @@ big_font = pygame.font.SysFont('Arial', 48)
 # On-screen controls for mobile
 button_size = 70
 button_margin = 15
-button_color = (80, 80, 80, 180)
-button_hover_color = (120, 120, 120, 200)
-button_press_color = (160, 160, 160, 220)
+button_color = (80, 80, 80)  # Remove alpha channel
+button_hover_color = (120, 120, 120)  # Remove alpha channel
+button_press_color = (160, 160, 160)  # Remove alpha channel
 
 # Define button positions and properties
 buttons = {
@@ -304,8 +304,9 @@ def draw_score():
     screen.blit(lines_text, (BOARD_X + BOARD_WIDTH + 20, BOARD_Y + 80))
 
 def draw_game_over():
-    overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-    overlay.fill((0, 0, 0, 128))
+    overlay = pygame.Surface((width, height))
+    overlay.fill(BLACK)
+    overlay.set_alpha(128)
     screen.blit(overlay, (0, 0))
     
     game_over_text = big_font.render("GAME OVER", True, RED)
@@ -315,8 +316,9 @@ def draw_game_over():
     screen.blit(restart_text, (width // 2 - restart_text.get_width() // 2, height // 2 + 20))
 
 def draw_pause():
-    overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-    overlay.fill((0, 0, 0, 128))
+    overlay = pygame.Surface((width, height))
+    overlay.fill(BLACK)
+    overlay.set_alpha(128)
     screen.blit(overlay, (0, 0))
     
     pause_text = big_font.render("PAUSED", True, YELLOW)
@@ -410,18 +412,6 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            
-            # Handle window resize
-            elif event.type == pygame.VIDEORESIZE:
-                width, height = event.size
-                screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-                
-                # Recalculate board position to center it
-                BOARD_X = (width - BOARD_WIDTH) // 2
-                BOARD_Y = (height - BOARD_HEIGHT) // 2
-                
-                # Update button positions
-                update_button_positions()
             
             # Handle mouse/touch events for buttons
             elif event.type == pygame.MOUSEBUTTONDOWN:
